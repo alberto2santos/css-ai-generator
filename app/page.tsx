@@ -23,20 +23,18 @@ import {
   Wand2,
   Zap,
 } from "lucide-react";
-
-type SavedGeneration = {
-  id: string;
-  prompt: string;
-  css: string;
-  createdAt: number;
-};
+import { SiteFooter } from "./components/site-footer";
+import {
+  MAX_HISTORY_ITEMS,
+  type SavedGeneration,
+  getHistorySnapshot,
+  getServerHistorySnapshot,
+  parseHistorySnapshot,
+  saveHistory,
+  subscribeToHistory,
+} from "./lib/history";
 
 type PreviewBackground = "dark" | "light" | "checkerboard";
-
-const HISTORY_STORAGE_KEY = "css-ai-generator-history";
-const HISTORY_UPDATE_EVENT = "css-ai-generator-history-update";
-const MAX_HISTORY_ITEMS = 8;
-let cachedHistorySnapshot: string | null = null;
 
 const PREVIEW_BACKGROUNDS = {
   dark: {
@@ -62,80 +60,6 @@ const PREVIEW_BACKGROUNDS = {
   PreviewBackground,
   { label: string; background: string; foreground: string; grid: string }
 >;
-
-function isSavedGeneration(value: unknown): value is SavedGeneration {
-  if (!value || typeof value !== "object") return false;
-
-  const item = value as Partial<SavedGeneration>;
-
-  return (
-    typeof item.id === "string" &&
-    typeof item.prompt === "string" &&
-    item.prompt.length <= 1000 &&
-    typeof item.css === "string" &&
-    item.css.length <= 20000 &&
-    typeof item.createdAt === "number" &&
-    Number.isFinite(new Date(item.createdAt).getTime())
-  );
-}
-
-function getHistorySnapshot() {
-  if (typeof window === "undefined") return "[]";
-  if (cachedHistorySnapshot !== null) return cachedHistorySnapshot;
-
-  let snapshot = "[]";
-  try {
-    snapshot = window.localStorage.getItem(HISTORY_STORAGE_KEY) ?? "[]";
-  } catch {
-    // Keep the empty in-memory value if browser storage is unavailable.
-  }
-
-  cachedHistorySnapshot = snapshot;
-  return snapshot;
-}
-
-function getServerHistorySnapshot() {
-  return "[]";
-}
-
-function subscribeToHistory(onStoreChange: () => void) {
-  const handleStorage = (event: StorageEvent) => {
-    if (event.key !== HISTORY_STORAGE_KEY && event.key !== null) return;
-    cachedHistorySnapshot = event.newValue ?? "[]";
-    onStoreChange();
-  };
-
-  window.addEventListener("storage", handleStorage);
-  window.addEventListener(HISTORY_UPDATE_EVENT, onStoreChange);
-
-  return () => {
-    window.removeEventListener("storage", handleStorage);
-    window.removeEventListener(HISTORY_UPDATE_EVENT, onStoreChange);
-  };
-}
-
-function saveHistory(history: SavedGeneration[]) {
-  cachedHistorySnapshot = JSON.stringify(history);
-
-  try {
-    window.localStorage.setItem(HISTORY_STORAGE_KEY, cachedHistorySnapshot);
-  } catch {
-    // Keep this session's history even if browser storage is unavailable.
-  }
-
-  window.dispatchEvent(new Event(HISTORY_UPDATE_EVENT));
-}
-
-function parseHistorySnapshot(snapshot: string) {
-  try {
-    const storedHistory = JSON.parse(snapshot) as unknown;
-    return Array.isArray(storedHistory)
-      ? storedHistory.filter(isSavedGeneration).slice(0, MAX_HISTORY_ITEMS)
-      : [];
-  } catch {
-    return [];
-  }
-}
 
 const EXAMPLE_PROMPTS = [
   "Uma bola vermelha quicando",
@@ -435,7 +359,7 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#070708] text-zinc-100">
-      {/* Background effects */}
+      {/* Efeitos de fundo */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-[-180px] h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-blue-500/15 blur-[120px]" />
         <div className="absolute bottom-[-160px] right-[-100px] h-[320px] w-[320px] rounded-full bg-violet-500/10 blur-[120px]" />
@@ -451,7 +375,7 @@ export default function Home() {
       </div>
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-        {/* Header */}
+        {/* Cabecalho */}
         <header className="mb-10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] shadow-[0_0_30px_rgba(59,130,246,0.12)]">
@@ -474,7 +398,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Hero */}
+        {/* Apresentacao */}
         <section className="mx-auto w-full max-w-4xl text-center">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-400/15 bg-blue-400/[0.06] px-3 py-1.5 text-xs font-medium text-blue-300">
             <Sparkles className="h-3.5 w-3.5" />
@@ -494,7 +418,7 @@ export default function Home() {
           </p>
         </section>
 
-        {/* Generator */}
+        {/* Gerador */}
         <section className="mx-auto mt-10 w-full max-w-4xl">
           <form
             onSubmit={handleGenerate}
@@ -568,7 +492,7 @@ export default function Home() {
             </div>
           </form>
 
-          {/* Suggestions */}
+          {/* Sugestoes */}
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             {EXAMPLE_PROMPTS.map((example) => (
               <button
@@ -595,10 +519,10 @@ export default function Home() {
           )}
         </section>
 
-        {/* Results */}
+        {/* Resultados */}
         <section className="mx-auto mt-10 w-full max-w-7xl">
           <div className="grid gap-5 lg:grid-cols-2">
-            {/* Preview */}
+            {/* Previa */}
             <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025] backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3 sm:px-5">
                 <div className="flex items-center gap-2">
@@ -689,7 +613,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Code */}
+            {/* Codigo */}
             <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025] backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3 sm:px-5">
                 <div className="flex items-center gap-2">
@@ -816,14 +740,7 @@ export default function Home() {
             </div>
           </section>
         )}
-
-        {/* Footer */}
-        <footer className="mt-auto pt-12 text-center">
-          <p className="text-xs text-zinc-700">
-            AI-powered CSS generation · Built with Next.js, TailwindCSS &
-            Groq
-          </p>
-        </footer>
+        <SiteFooter />
       </div>
     </main>
   );

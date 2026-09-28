@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "GROQ_API_KEY não configurada. Adicione a variável no arquivo .env.local.",
+            "GROQ_API_KEY não configurada no servidor. Adicione essa variável nas configurações do ambiente de produção do provedor de hospedagem e publique novamente o app.",
         },
         { status: 500 }
       );

@@ -68,6 +68,12 @@ Descreva o efeito que você imaginou e receba CSS para experimentar na hora. Exp
 
 4. Abra [http://localhost:3000](http://localhost:3000) no navegador.
 
+## Publicação em produção
+
+O arquivo `.env.local` é usado apenas no ambiente local e não é enviado ao Git. Para habilitar a geração de CSS em produção, cadastre `GROQ_API_KEY` nas variáveis de ambiente do provedor de hospedagem, com o valor da sua chave da Groq, habilite-a para o ambiente de produção e faça um novo deploy. Não coloque a chave em arquivos públicos nem em variáveis com prefixo `NEXT_PUBLIC_`.
+
+Se a rota `/generate` responder que `GROQ_API_KEY` não está configurada, confira se a variável foi cadastrada no projeto e no ambiente corretos e se o último deploy foi feito depois dessa configuração.
+
 ## 📜 Scripts disponíveis
 
 | Comando | Descrição |
